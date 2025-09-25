@@ -1,11 +1,14 @@
-# frozen_string_literal: true
+require "spec_helper"
+require "phrasekit"
 
-RSpec.describe Phrasekit do
+RSpec.describe PhraseKit do
   it "has a version number" do
-    expect(Phrasekit::VERSION).not_to be nil
+    expect(PhraseKit::VERSION).not_to be nil
   end
 
-  it "does something useful" do
-    expect(false).to eq(true)
+  describe ".hello" do
+    it "returns greeting from native extension" do
+      expect(PhraseKit.hello).to eq("Hello from PhraseKit native extension!")
+    end
   end
 end
