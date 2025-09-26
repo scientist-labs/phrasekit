@@ -80,12 +80,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::write(&manifest_path, manifest_json)?;
     println!("✓ Wrote manifest to {}", manifest_path.display());
 
-    // Also write to test.* for backwards compatibility
-    std::fs::copy(output_dir.join("phrases.daac"), output_dir.join("test.daac"))?;
-    std::fs::copy(output_dir.join("payloads.bin"), output_dir.join("test.bin"))?;
-    std::fs::copy(output_dir.join("manifest.json"), output_dir.join("test.json"))?;
-    println!("✓ Created test.* symlinks");
-
     println!("\n✅ Test fixtures generated successfully!");
     println!("\nTest patterns:");
     println!("  Pattern 0: tokens [100, 101] → phrase_id 100 (salience 2.5) - 'machine learning'");

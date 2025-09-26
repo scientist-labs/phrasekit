@@ -29,9 +29,9 @@ RSpec.describe PhraseKit do
   describe ".load!" do
     let(:test_paths) do
       {
-        automaton_path: "spec/fixtures/test.daac",
-        payloads_path: "spec/fixtures/test.bin",
-        manifest_path: "spec/fixtures/test.json"
+        automaton_path: "spec/fixtures/phrases.daac",
+        payloads_path: "spec/fixtures/payloads.bin",
+        manifest_path: "spec/fixtures/manifest.json"
       }
     end
 
@@ -48,9 +48,9 @@ RSpec.describe PhraseKit do
   describe ".match_tokens" do
     before do
       PhraseKit.load!(
-        automaton_path: "spec/fixtures/test.daac",
-        payloads_path: "spec/fixtures/test.bin",
-        manifest_path: "spec/fixtures/test.json"
+        automaton_path: "spec/fixtures/phrases.daac",
+        payloads_path: "spec/fixtures/payloads.bin",
+        manifest_path: "spec/fixtures/manifest.json"
       )
     end
 
@@ -75,6 +75,88 @@ RSpec.describe PhraseKit do
       expect(result).to be_an(Array)
       expect(result.length).to be >= 0
     end
+
+    describe "basic matching" do
+      it "finds exact phrase matches" do
+        token_ids = [100, 101]
+        matches = PhraseKit.match_tokens(token_ids: token_ids)
+
+        expect(matches).not_to be_empty
+        expect(matches.first).to include(
+          start: 0,
+          end: 2,
+          phrase_id: Integer,
+          salience: Float,
+          count: Integer,
+          n: 2
+        )
+      end
+
+      it "finds multiple non-overlapping phrases" do
+        token_ids = [100, 101, 50, 200, 101]
+        matches = PhraseKit.match_tokens(token_ids: token_ids)
+
+        expect(matches.length).to eq(2)
+        expect(matches[0][:end]).to be <= matches[1][:start]
+      end
+    end
+
+    describe "matching policies" do
+      let(:overlapping_tokens) { [100, 101, 102] }
+
+      it "applies leftmost_longest policy" do
+        matches = PhraseKit.match_tokens(
+          token_ids: overlapping_tokens,
+          policy: :leftmost_longest
+        )
+
+        expect(matches.first[:n]).to eq(3)
+      end
+
+      it "applies leftmost_first policy" do
+        matches = PhraseKit.match_tokens(
+          token_ids: overlapping_tokens,
+          policy: :leftmost_first
+        )
+
+        expect(matches).not_to be_empty
+      end
+
+      it "applies salience_max policy" do
+        matches = PhraseKit.match_tokens(
+          token_ids: overlapping_tokens,
+          policy: :salience_max
+        )
+
+        expect(matches).not_to be_empty
+        if matches.length > 1
+          expect(matches[0][:salience]).to be >= matches[1][:salience]
+        end
+      end
+    end
+
+    describe "edge cases" do
+      it "handles empty input" do
+        matches = PhraseKit.match_tokens(token_ids: [])
+        expect(matches).to eq([])
+      end
+
+      it "handles single token" do
+        matches = PhraseKit.match_tokens(token_ids: [100])
+        expect(matches).to be_an(Array)
+      end
+
+      it "handles unknown tokens" do
+        matches = PhraseKit.match_tokens(token_ids: [999999, 888888])
+        expect(matches).to eq([])
+      end
+
+      it "respects max parameter" do
+        token_ids = (100..120).to_a
+        matches = PhraseKit.match_tokens(token_ids: token_ids, max: 5)
+        expect(matches.length).to be <= 5
+      end
+    end
   end
 
   describe ".stats" do
@@ -89,9 +171,9 @@ RSpec.describe PhraseKit do
     context "when loaded" do
       before do
         PhraseKit.load!(
-          automaton_path: "spec/fixtures/test.daac",
-          payloads_path: "spec/fixtures/test.bin",
-          manifest_path: "spec/fixtures/test.json"
+          automaton_path: "spec/fixtures/phrases.daac",
+          payloads_path: "spec/fixtures/payloads.bin",
+          manifest_path: "spec/fixtures/manifest.json"
         )
       end
 
@@ -106,6 +188,11 @@ RSpec.describe PhraseKit do
           :p50_us,
           :p95_us
         )
+      end
+
+      it "includes manifest version" do
+        stats = PhraseKit.stats
+        expect(stats[:version]).not_to be_nil
       end
     end
   end
@@ -122,15 +209,73 @@ RSpec.describe PhraseKit do
     context "when loaded" do
       before do
         PhraseKit.load!(
-          automaton_path: "spec/fixtures/test.daac",
-          payloads_path: "spec/fixtures/test.bin",
-          manifest_path: "spec/fixtures/test.json"
+          automaton_path: "spec/fixtures/phrases.daac",
+          payloads_path: "spec/fixtures/payloads.bin",
+          manifest_path: "spec/fixtures/manifest.json"
         )
       end
 
       it "returns true" do
         expect(PhraseKit.healthcheck).to be true
       end
+    end
+  end
+
+  describe "performance" do
+    before do
+      PhraseKit.load!(
+        automaton_path: "spec/fixtures/phrases.daac",
+        payloads_path: "spec/fixtures/payloads.bin",
+        manifest_path: "spec/fixtures/manifest.json"
+      )
+    end
+
+    it "matches 20-token query in < 500µs (p95 target)" do
+      token_ids = (100..119).to_a
+
+      times = 100.times.map do
+        start = Process.clock_gettime(Process::CLOCK_MONOTONIC, :microsecond)
+        PhraseKit.match_tokens(token_ids: token_ids)
+        Process.clock_gettime(Process::CLOCK_MONOTONIC, :microsecond) - start
+      end
+
+      p95 = times.sort[94]
+      expect(p95).to be < 500
+    end
+
+    it "handles concurrent matching (thread-safe)" do
+      results = 10.times.map do
+        Thread.new do
+          PhraseKit.match_tokens(token_ids: [100, 101, 102])
+        end
+      end.map(&:value)
+
+      expect(results.uniq.length).to eq(1)
+    end
+  end
+
+  describe "hot reload" do
+    before do
+      PhraseKit.load!(
+        automaton_path: "spec/fixtures/phrases.daac",
+        payloads_path: "spec/fixtures/payloads.bin",
+        manifest_path: "spec/fixtures/manifest.json"
+      )
+    end
+
+    it "supports artifact reloading without restart" do
+      initial_stats = PhraseKit.stats
+
+      sleep 0.001
+
+      PhraseKit.load!(
+        automaton_path: "spec/fixtures/phrases.daac",
+        payloads_path: "spec/fixtures/payloads.bin",
+        manifest_path: "spec/fixtures/manifest.json"
+      )
+
+      new_stats = PhraseKit.stats
+      expect(new_stats[:loaded_at]).to be > initial_stats[:loaded_at]
     end
   end
 end
