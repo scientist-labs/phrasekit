@@ -3,7 +3,7 @@ mod matcher;
 mod payload;
 mod policy;
 
-use magnus::{define_module, function, method, prelude::*, Error, RArray, RHash, Ruby, Value};
+use magnus::{define_module, function, method, prelude::*, Error, RArray, RHash, Ruby};
 use matcher::{Matcher as RustMatcher, Stats};
 use parking_lot::RwLock;
 use policy::MatchPolicy;

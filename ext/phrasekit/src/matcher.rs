@@ -5,8 +5,7 @@ use daachorse::DoubleArrayAhoCorasick;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
-use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -21,6 +20,7 @@ pub enum MatcherError {
     Automaton(String),
 
     #[error("Matcher not loaded")]
+    #[allow(dead_code)]
     NotLoaded,
 }
 
@@ -104,6 +104,7 @@ impl Matcher {
         resolved
     }
 
+    #[allow(dead_code)]
     pub fn manifest(&self) -> &Manifest {
         &self.manifest
     }
@@ -112,6 +113,7 @@ impl Matcher {
         self.payloads.len()
     }
 
+    #[allow(dead_code)]
     pub fn loaded_at(&self) -> SystemTime {
         self.loaded_at
     }

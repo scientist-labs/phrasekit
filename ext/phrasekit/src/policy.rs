@@ -22,6 +22,7 @@ impl MatchPolicy {
 pub struct Match {
     pub start: usize,
     pub end: usize,
+    #[allow(dead_code)]
     pub pattern_id: usize,
     pub payload: Payload,
 }

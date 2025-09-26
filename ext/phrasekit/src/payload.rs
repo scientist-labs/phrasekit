@@ -10,6 +10,7 @@ pub struct Payload {
 }
 
 impl Payload {
+    #[allow(dead_code)]
     pub fn new(phrase_id: u32, salience: f32, count: u32, n: u8) -> Self {
         Self {
             phrase_id,
@@ -40,6 +41,7 @@ impl Payload {
         })
     }
 
+    #[allow(dead_code)]
     pub fn write_to<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
         writer.write_all(&self.phrase_id.to_le_bytes())?;
         writer.write_all(&self.salience.to_le_bytes())?;

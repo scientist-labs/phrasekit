@@ -24,6 +24,7 @@ pub enum ManifestError {
     Json(#[from] serde_json::Error),
 
     #[error("Invalid manifest: {0}")]
+    #[allow(dead_code)]
     Invalid(String),
 }
 
@@ -42,6 +43,7 @@ impl Manifest {
         Ok(manifest)
     }
 
+    #[allow(dead_code)]
     pub fn validate_compatible(&self, other: &Manifest) -> Result<(), ManifestError> {
         if self.tokenizer != other.tokenizer {
             return Err(ManifestError::Invalid(format!(
