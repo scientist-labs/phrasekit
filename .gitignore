@@ -45,3 +45,4 @@ Gemfile.lock
 
 # Example build outputs
 /examples/**/output/
+/examples/**/candidate_phrases*.jsonl

@@ -15,6 +15,10 @@ path = "src/bin/fixture_builder.rs"
 name = "phrasekit_build"
 path = "src/bin/phrasekit_build.rs"
 
+[[bin]]
+name = "phrasekit_mine"
+path = "src/bin/phrasekit_mine.rs"
+
 [dependencies]
 magnus = { version = "0.7" }
 daachorse = "1.0"
