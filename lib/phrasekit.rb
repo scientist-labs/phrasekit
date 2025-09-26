@@ -1,13 +1,12 @@
 require "phrasekit/version"
 
-begin
-  require "phrasekit/phrasekit"
-  NATIVE_EXTENSION_LOADED = true
-rescue LoadError
-  NATIVE_EXTENSION_LOADED = false
-end
-
 module PhraseKit
+  begin
+    require "phrasekit/phrasekit"
+    NATIVE_EXTENSION_LOADED = true
+  rescue LoadError
+    NATIVE_EXTENSION_LOADED = false
+  end
   class Error < StandardError; end
 
   class << self
