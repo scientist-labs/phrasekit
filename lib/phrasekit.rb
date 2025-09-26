@@ -14,7 +14,11 @@ module PhraseKit
     def load!(automaton_path:, payloads_path:, manifest_path:)
       if NATIVE_EXTENSION_LOADED
         @matcher = NativeMatcher.new
-        @matcher.load(automaton_path.to_s, payloads_path.to_s, manifest_path.to_s)
+        begin
+          @matcher.load(automaton_path.to_s, payloads_path.to_s, manifest_path.to_s)
+        rescue RuntimeError => e
+          raise Error, e.message
+        end
       else
         @loaded = true
         @stats_data = {
@@ -48,9 +52,13 @@ module PhraseKit
     def stats
       if NATIVE_EXTENSION_LOADED
         raise Error, "PhraseKit not loaded. Call PhraseKit.load! first" unless @matcher
-        stats_hash = @matcher.stats
-        stats_hash[:loaded_at] = Time.at(stats_hash[:loaded_at])
-        stats_hash
+        begin
+          stats_hash = @matcher.stats
+          stats_hash[:loaded_at] = Time.at(stats_hash[:loaded_at])
+          stats_hash
+        rescue RuntimeError => e
+          raise Error, e.message
+        end
       else
         raise Error, "PhraseKit not loaded. Call PhraseKit.load! first" unless @loaded
         @stats_data.merge(loaded_at: Time.at(@stats_data[:loaded_at]))
@@ -60,7 +68,11 @@ module PhraseKit
     def healthcheck
       if NATIVE_EXTENSION_LOADED
         raise Error, "PhraseKit not loaded. Call PhraseKit.load! first" unless @matcher
-        @matcher.healthcheck
+        begin
+          @matcher.healthcheck
+        rescue RuntimeError => e
+          raise Error, e.message
+        end
       else
         raise Error, "PhraseKit not loaded. Call PhraseKit.load! first" unless @loaded
         true
