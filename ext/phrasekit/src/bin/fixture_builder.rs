@@ -1,4 +1,6 @@
 use daachorse::DoubleArrayAhoCorasick;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
 
@@ -10,6 +12,14 @@ mod manifest;
 
 use manifest::Manifest;
 use payload::Payload;
+
+#[derive(Debug, Serialize)]
+struct Vocabulary {
+    tokens: HashMap<String, u32>,
+    special_tokens: HashMap<String, u32>,
+    vocab_size: usize,
+    separator_id: u32,
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
@@ -79,6 +89,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let manifest_json = serde_json::to_string_pretty(&manifest)?;
     std::fs::write(&manifest_path, manifest_json)?;
     println!("✓ Wrote manifest to {}", manifest_path.display());
+
+    // Create vocabulary
+    let mut tokens = HashMap::new();
+    tokens.insert("machine".to_string(), 100);
+    tokens.insert("learning".to_string(), 101);
+    tokens.insert("algorithms".to_string(), 102);
+    tokens.insert("deep".to_string(), 200);
+
+    let mut special_tokens = HashMap::new();
+    special_tokens.insert("<UNK>".to_string(), 0);
+
+    let vocabulary = Vocabulary {
+        tokens,
+        special_tokens,
+        vocab_size: 5,
+        separator_id: separator,
+    };
+
+    let vocab_path = output_dir.join("vocab.json");
+    let vocab_json = serde_json::to_string_pretty(&vocabulary)?;
+    std::fs::write(&vocab_path, vocab_json)?;
+    println!("✓ Wrote vocabulary to {}", vocab_path.display());
 
     println!("\n✅ Test fixtures generated successfully!");
     println!("\nTest patterns:");

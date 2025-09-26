@@ -1,6 +1,6 @@
 use daachorse::DoubleArrayAhoCorasick;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -16,10 +16,18 @@ use payload::Payload;
 
 #[derive(Debug, Deserialize)]
 struct PhraseInput {
-    tokens: Vec<u32>,
+    tokens: Vec<String>,
     phrase_id: u32,
     salience: f32,
     count: u32,
+}
+
+struct ProcessedPhrase {
+    token_ids: Vec<u32>,
+    phrase_id: u32,
+    salience: f32,
+    count: u32,
+    length: u8,
 }
 
 #[derive(Debug, Deserialize)]
@@ -41,6 +49,14 @@ struct BuildStats {
     duplicate_phrase_ids: usize,
     invalid_tokens: usize,
     built: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct Vocabulary {
+    tokens: HashMap<String, u32>,
+    special_tokens: HashMap<String, u32>,
+    vocab_size: usize,
+    separator_id: u32,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -72,7 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::create_dir_all(&output_dir)?;
 
     // Load and validate phrases
-    let (phrases, stats) = load_and_validate_phrases(input_path, &config)?;
+    let (text_phrases, stats, unique_tokens) = load_and_validate_phrases(input_path, &config)?;
 
     println!("\n📊 Build Statistics:");
     println!("  Total input phrases:     {}", stats.total_input);
@@ -90,14 +106,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     println!("  Built patterns:          {}", stats.built);
 
-    if phrases.is_empty() {
+    if text_phrases.is_empty() {
         return Err("No valid phrases to build".into());
+    }
+
+    // Build vocabulary and assign token IDs
+    println!("\n📚 Building vocabulary...");
+    let vocabulary = build_vocabulary(unique_tokens, config.separator_id);
+    println!("  ✓ Built vocabulary ({} tokens)", vocabulary.vocab_size);
+
+    // Convert text tokens to IDs
+    let mut phrases: Vec<ProcessedPhrase> = Vec::new();
+    for phrase in text_phrases {
+        let token_ids: Vec<u32> = phrase.tokens.iter()
+            .map(|t| *vocabulary.tokens.get(&t.to_lowercase()).unwrap_or(&0))
+            .collect();
+
+        phrases.push(ProcessedPhrase {
+            token_ids,
+            phrase_id: phrase.phrase_id,
+            salience: phrase.salience,
+            count: phrase.count,
+            length: phrase.tokens.len() as u8,
+        });
     }
 
     // Build automaton
     println!("\n🔨 Building automaton...");
     let patterns: Vec<Vec<u8>> = phrases.iter()
-        .map(|p| encode_tokens(&p.tokens, config.separator_id))
+        .map(|p| encode_tokens(&p.token_ids, config.separator_id))
         .collect();
 
     let automaton: DoubleArrayAhoCorasick<u32> = DoubleArrayAhoCorasick::new(patterns)
@@ -111,7 +148,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Write payloads
     println!("\n💾 Writing payloads...");
     let payloads: Vec<Payload> = phrases.iter()
-        .map(|p| Payload::new(p.phrase_id, p.salience, p.count, p.tokens.len() as u8))
+        .map(|p| Payload::new(p.phrase_id, p.salience, p.count, p.length))
         .collect();
 
     let payloads_path = output_dir.join("payloads.bin");
@@ -139,18 +176,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::write(&manifest_path, manifest_json)?;
     println!("  ✓ Wrote manifest to {}", manifest_path.display());
 
+    // Write vocabulary
+    println!("\n💾 Writing vocabulary...");
+    let vocab_path = output_dir.join("vocab.json");
+    let vocab_json = serde_json::to_string_pretty(&vocabulary)?;
+    std::fs::write(&vocab_path, vocab_json)?;
+    println!("  ✓ Wrote vocabulary ({} tokens) to {}", vocabulary.vocab_size, vocab_path.display());
+
     // Summary
     println!("\n✅ Build complete!");
     println!("\nArtifacts:");
     println!("  {} ({} bytes)", automaton_path.display(), automaton_bytes.len());
     println!("  {} ({} bytes)", payloads_path.display(), payloads_size);
     println!("  {}", manifest_path.display());
+    println!("  {}", vocab_path.display());
 
     println!("\n🚀 To use in PhraseKit:");
     println!("  PhraseKit.load!(");
     println!("    automaton_path: {:?},", automaton_path.to_str().unwrap());
     println!("    payloads_path: {:?},", payloads_path.to_str().unwrap());
-    println!("    manifest_path: {:?}", manifest_path.to_str().unwrap());
+    println!("    manifest_path: {:?},", manifest_path.to_str().unwrap());
+    println!("    vocab_path: {:?}", vocab_path.to_str().unwrap());
     println!("  )");
 
     Ok(())
@@ -165,12 +211,13 @@ fn load_config(path: &str) -> Result<BuildConfig, Box<dyn std::error::Error>> {
 fn load_and_validate_phrases(
     path: &str,
     config: &BuildConfig,
-) -> Result<(Vec<PhraseInput>, BuildStats), Box<dyn std::error::Error>> {
+) -> Result<(Vec<PhraseInput>, BuildStats, HashSet<String>), Box<dyn std::error::Error>> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);
 
     let mut phrases = Vec::new();
     let mut seen_ids = HashSet::new();
+    let mut unique_tokens: HashSet<String> = HashSet::new();
     let mut stats = BuildStats {
         total_input: 0,
         filtered_low_count: 0,
@@ -215,16 +262,22 @@ fn load_and_validate_phrases(
             continue;
         }
 
-        if phrase.tokens.contains(&config.separator_id) {
-            eprintln!("⚠️  Line {}: Tokens contain separator_id", line_num + 1);
-            stats.invalid_tokens += 1;
-            continue;
+        for token in &phrase.tokens {
+            if token.is_empty() {
+                eprintln!("⚠️  Line {}: Empty token", line_num + 1);
+                stats.invalid_tokens += 1;
+                continue;
+            }
         }
 
         if !seen_ids.insert(phrase.phrase_id) {
             eprintln!("⚠️  Line {}: Duplicate phrase_id {}", line_num + 1, phrase.phrase_id);
             stats.duplicate_phrase_ids += 1;
             continue;
+        }
+
+        for token in &phrase.tokens {
+            unique_tokens.insert(token.to_lowercase());
         }
 
         phrases.push(phrase);
@@ -237,7 +290,7 @@ fn load_and_validate_phrases(
 
     println!("  ✓ Loaded {} phrases", stats.total_input);
 
-    Ok((phrases, stats))
+    Ok((phrases, stats, unique_tokens))
 }
 
 fn encode_tokens(tokens: &[u32], separator: u32) -> Vec<u8> {
@@ -247,4 +300,26 @@ fn encode_tokens(tokens: &[u32], separator: u32) -> Vec<u8> {
         bytes.extend_from_slice(&separator.to_le_bytes());
     }
     bytes
+}
+
+fn build_vocabulary(unique_tokens: HashSet<String>, separator_id: u32) -> Vocabulary {
+    let mut tokens = HashMap::new();
+    let mut sorted_tokens: Vec<String> = unique_tokens.into_iter().collect();
+    sorted_tokens.sort();
+
+    for (idx, token) in sorted_tokens.iter().enumerate() {
+        tokens.insert(token.clone(), (idx + 1) as u32);
+    }
+
+    let mut special_tokens = HashMap::new();
+    special_tokens.insert("<UNK>".to_string(), 0);
+
+    let vocab_size = tokens.len() + special_tokens.len();
+
+    Vocabulary {
+        tokens,
+        special_tokens,
+        vocab_size,
+        separator_id,
+    }
 }

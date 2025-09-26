@@ -9,17 +9,19 @@ The PhraseKit builder compiles phrases into optimized matching artifacts. Input 
 Each line is a JSON object representing one phrase:
 
 ```jsonl
-{"tokens":[100,101],"phrase_id":1000,"salience":2.5,"count":150}
-{"tokens":[200,101],"phrase_id":1001,"salience":2.0,"count":100}
-{"tokens":[100,101,102],"phrase_id":1002,"salience":3.0,"count":200}
+{"tokens":["rat","cdk10"],"phrase_id":1000,"salience":2.5,"count":150}
+{"tokens":["mouse","cdk10"],"phrase_id":1001,"salience":2.0,"count":100}
+{"tokens":["rat","cdk10","oligo"],"phrase_id":1002,"salience":3.0,"count":200}
 ```
 
 ### Fields
 
-- **tokens** (required): Array of u32 token IDs representing the phrase
+- **tokens** (required): Array of string tokens representing the phrase (lowercase recommended)
 - **phrase_id** (required): Unique u32 identifier for this phrase
 - **salience** (required): f32 salience score (typically 0.0-10.0)
 - **count** (required): u32 occurrence count in corpus
+
+**Note:** The builder automatically assigns token IDs and generates the vocabulary during the build process. Tokens are normalized to lowercase during encoding.
 
 ### Config Format: config.json
 
@@ -45,11 +47,12 @@ Metadata about the build:
 
 ## Output Artifacts
 
-Builder generates three files:
+Builder generates four files:
 
 1. **phrases.daac**: Binary automaton (daachorse format)
 2. **payloads.bin**: Binary payload table (17 bytes per phrase)
 3. **manifest.json**: Metadata with checksums and stats
+4. **vocab.json**: Token string → ID mapping for runtime encoding
 
 ## Usage
 
@@ -69,17 +72,18 @@ phrasekit build \
 
 Builder performs these validations:
 
-- Token IDs do not contain separator_id
+- Tokens are non-empty strings
 - phrase_id values are unique
 - All required fields present
 - salience and count are positive
 - Automaton build succeeds (no duplicate patterns)
+- Vocabulary generation succeeds
 
 ## Example: Minimal Dataset
 
 ```jsonl
-{"tokens":[1,2],"phrase_id":100,"salience":1.5,"count":50}
-{"tokens":[2,3],"phrase_id":101,"salience":2.0,"count":100}
+{"tokens":["dna","extraction"],"phrase_id":100,"salience":1.5,"count":50}
+{"tokens":["extraction","kit"],"phrase_id":101,"salience":2.0,"count":100}
 ```
 
 ```json

@@ -261,4 +261,123 @@ RSpec.describe PhraseKit do
       expect(new_stats[:loaded_at]).to be > initial_stats[:loaded_at]
     end
   end
+
+  describe "vocabulary support" do
+    let(:test_paths_with_vocab) do
+      {
+        automaton_path: "spec/fixtures/phrases.daac",
+        payloads_path: "spec/fixtures/payloads.bin",
+        manifest_path: "spec/fixtures/manifest.json",
+        vocab_path: "spec/fixtures/vocab.json"
+      }
+    end
+
+    describe ".load! with vocab_path" do
+      it "loads vocabulary successfully" do
+        expect { PhraseKit.load!(**test_paths_with_vocab) }.not_to raise_error
+      end
+
+      it "makes vocabulary accessible" do
+        PhraseKit.load!(**test_paths_with_vocab)
+        expect(PhraseKit.vocabulary).not_to be_nil
+        expect(PhraseKit.vocabulary[:tokens]).to be_a(Hash)
+        expect(PhraseKit.vocabulary[:special_tokens]).to be_a(Hash)
+      end
+
+      it "vocabulary contains expected tokens" do
+        PhraseKit.load!(**test_paths_with_vocab)
+        vocab = PhraseKit.vocabulary
+        expect(vocab[:tokens]["machine"]).to eq(100)
+        expect(vocab[:tokens]["learning"]).to eq(101)
+        expect(vocab[:tokens]["deep"]).to eq(200)
+        expect(vocab[:special_tokens]["<UNK>"]).to eq(0)
+      end
+    end
+
+    describe ".encode_tokens" do
+      before do
+        PhraseKit.load!(**test_paths_with_vocab)
+      end
+
+      it "encodes known tokens" do
+        tokens = ["machine", "learning"]
+        result = PhraseKit.encode_tokens(tokens)
+        expect(result).to eq([100, 101])
+      end
+
+      it "handles unknown tokens with <UNK> ID" do
+        tokens = ["machine", "unknown", "learning"]
+        result = PhraseKit.encode_tokens(tokens)
+        expect(result).to eq([100, 0, 101])
+      end
+
+      it "normalizes to lowercase" do
+        tokens = ["MACHINE", "Learning", "dEEp"]
+        result = PhraseKit.encode_tokens(tokens)
+        expect(result).to eq([100, 101, 200])
+      end
+
+      it "raises error when vocabulary not loaded" do
+        PhraseKit.instance_variable_set(:@vocabulary, nil)
+        expect {
+          PhraseKit.encode_tokens(["machine"])
+        }.to raise_error(PhraseKit::Error, /Vocabulary not loaded/)
+      end
+    end
+
+    describe ".match_text_tokens" do
+      before do
+        PhraseKit.load!(**test_paths_with_vocab)
+      end
+
+      it "matches phrases from text tokens" do
+        tokens = ["machine", "learning"]
+        matches = PhraseKit.match_text_tokens(tokens: tokens)
+        expect(matches).not_to be_empty
+        expect(matches.first[:phrase_id]).to eq(100)
+      end
+
+      it "matches longer phrases" do
+        tokens = ["machine", "learning", "algorithms"]
+        matches = PhraseKit.match_text_tokens(tokens: tokens, policy: :leftmost_longest)
+        expect(matches).not_to be_empty
+        expect(matches.first[:phrase_id]).to eq(300)
+        expect(matches.first[:end]).to eq(3)
+      end
+
+      it "handles case insensitivity" do
+        tokens = ["DEEP", "Learning"]
+        matches = PhraseKit.match_text_tokens(tokens: tokens)
+        expect(matches).not_to be_empty
+        expect(matches.first[:phrase_id]).to eq(200)
+      end
+
+      it "returns empty array for unknown tokens" do
+        tokens = ["unknown", "tokens"]
+        matches = PhraseKit.match_text_tokens(tokens: tokens)
+        expect(matches).to be_empty
+      end
+
+      it "raises error when vocabulary not loaded" do
+        PhraseKit.instance_variable_set(:@vocabulary, nil)
+        expect {
+          PhraseKit.match_text_tokens(tokens: ["machine"])
+        }.to raise_error(PhraseKit::Error, /Vocabulary not loaded/)
+      end
+    end
+
+    describe "backwards compatibility" do
+      it "load! works without vocab_path" do
+        PhraseKit.load!(
+          automaton_path: "spec/fixtures/phrases.daac",
+          payloads_path: "spec/fixtures/payloads.bin",
+          manifest_path: "spec/fixtures/manifest.json"
+        )
+        expect(PhraseKit.vocabulary).to be_nil
+        expect {
+          PhraseKit.match_tokens(token_ids: [100, 101])
+        }.not_to raise_error
+      end
+    end
+  end
 end
