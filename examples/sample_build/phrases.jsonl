@@ -1,0 +1,10 @@
+{"tokens":[100,101],"phrase_id":1000,"salience":2.5,"count":150}
+{"tokens":[200,101],"phrase_id":1001,"salience":2.0,"count":100}
+{"tokens":[100,101,102],"phrase_id":1002,"salience":3.0,"count":200}
+{"tokens":[300,301],"phrase_id":1003,"salience":1.8,"count":80}
+{"tokens":[400,401,402],"phrase_id":1004,"salience":2.2,"count":120}
+{"tokens":[500,501],"phrase_id":1005,"salience":1.5,"count":50}
+{"tokens":[600,601,602,603],"phrase_id":1006,"salience":3.5,"count":250}
+{"tokens":[700,701],"phrase_id":1007,"salience":2.8,"count":180}
+{"tokens":[800,801,802],"phrase_id":1008,"salience":2.1,"count":110}
+{"tokens":[900,901],"phrase_id":1009,"salience":1.9,"count":95}

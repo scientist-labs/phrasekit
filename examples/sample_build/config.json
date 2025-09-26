@@ -1,0 +1,7 @@
+{
+  "version": "sample-v1",
+  "tokenizer": "scientist-tokenizer-v1",
+  "separator_id": 4294967294,
+  "min_count": 10,
+  "salience_threshold": 1.0
+}

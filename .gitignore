@@ -42,3 +42,6 @@ Gemfile.lock
 /spec/fixtures/**/*.bin
 /spec/fixtures/**/*.json
 !/spec/fixtures/samples/
+
+# Example build outputs
+/examples/**/output/
