@@ -53,8 +53,8 @@ module PhraseKit
       if NATIVE_EXTENSION_LOADED
         raise Error, "PhraseKit not loaded. Call PhraseKit.load! first" unless @matcher
         begin
-          stats_hash = @matcher.stats
-          stats_hash[:loaded_at] = Time.at(stats_hash[:loaded_at])
+          stats_hash = @matcher.stats.symbolize_keys
+          stats_hash[:loaded_at] = Time.at(stats_hash[:loaded_at] / 1000.0)
           stats_hash
         rescue RuntimeError => e
           raise Error, e.message

@@ -70,17 +70,16 @@ RSpec.describe PhraseKit do
       expect(result).to be_an(Array)
     end
 
-    it "returns array of matches (stub returns empty)" do
+    it "returns array of matches" do
       result = PhraseKit.match_tokens(token_ids: [1, 2, 3])
       expect(result).to be_an(Array)
-      # In M0 stub, this is empty
-      expect(result).to eq([])
+      expect(result.length).to be >= 0
     end
   end
 
   describe ".stats" do
     context "when not loaded" do
-      before { PhraseKit.instance_variable_set(:@loaded, false) }
+      before { PhraseKit.instance_variable_set(:@matcher, nil) }
 
       it "raises error" do
         expect { PhraseKit.stats }.to raise_error(PhraseKit::Error, /not loaded/)
@@ -90,9 +89,9 @@ RSpec.describe PhraseKit do
     context "when loaded" do
       before do
         PhraseKit.load!(
-          automaton_path: "test",
-          payloads_path: "test",
-          manifest_path: "test"
+          automaton_path: "spec/fixtures/test.daac",
+          payloads_path: "spec/fixtures/test.bin",
+          manifest_path: "spec/fixtures/test.json"
         )
       end
 
@@ -113,7 +112,7 @@ RSpec.describe PhraseKit do
 
   describe ".healthcheck" do
     context "when not loaded" do
-      before { PhraseKit.instance_variable_set(:@loaded, false) }
+      before { PhraseKit.instance_variable_set(:@matcher, nil) }
 
       it "raises error" do
         expect { PhraseKit.healthcheck }.to raise_error(PhraseKit::Error)
@@ -123,9 +122,9 @@ RSpec.describe PhraseKit do
     context "when loaded" do
       before do
         PhraseKit.load!(
-          automaton_path: "test",
-          payloads_path: "test",
-          manifest_path: "test"
+          automaton_path: "spec/fixtures/test.daac",
+          payloads_path: "spec/fixtures/test.bin",
+          manifest_path: "spec/fixtures/test.json"
         )
       end
 

@@ -69,7 +69,7 @@ impl MatcherWrapper {
         let hash = RHash::new();
 
         hash.aset("version", stats.version)?;
-        hash.aset("loaded_at", stats.loaded_at.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs())?;
+        hash.aset("loaded_at", stats.loaded_at.duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64)?;
         hash.aset("num_patterns", stats.num_patterns)?;
         hash.aset("heap_mb", stats.heap_mb)?;
         hash.aset("hits_total", stats.hits_total)?;

@@ -7,6 +7,10 @@ edition = "2021"
 crate-type = ["cdylib"]
 name = "phrasekit"
 
+[[bin]]
+name = "fixture_builder"
+path = "src/bin/fixture_builder.rs"
+
 [dependencies]
 magnus = { version = "0.7" }
 daachorse = "1.0"

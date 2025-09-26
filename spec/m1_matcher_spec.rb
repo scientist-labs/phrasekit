@@ -136,6 +136,8 @@ RSpec.describe "M1: PhraseKit Core Matching" do
     it "supports artifact reloading without restart" do
       initial_stats = PhraseKit.stats
 
+      sleep 0.001
+
       # Reload with same files (simulating hot reload)
       PhraseKit.load!(
         automaton_path: "spec/fixtures/phrases.daac",
