@@ -7,23 +7,6 @@ RSpec.describe PhraseKit do
       expect(PhraseKit::VERSION).not_to be nil
       expect(PhraseKit::VERSION).to match(/^\d+\.\d+\.\d+$/)
     end
-
-    it "indicates native extension status" do
-      expect(PhraseKit::NATIVE_EXTENSION_LOADED).to be(true).or be(false)
-    end
-  end
-
-  describe ".hello" do
-    it "returns greeting" do
-      greeting = PhraseKit.hello
-      expect(greeting).to include("PhraseKit")
-
-      if PhraseKit::NATIVE_EXTENSION_LOADED
-        expect(greeting).to include("native extension")
-      else
-        expect(greeting).to include("Ruby stub")
-      end
-    end
   end
 
   describe ".load!" do

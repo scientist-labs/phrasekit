@@ -87,10 +87,6 @@ impl MatcherWrapper {
             .ok_or_else(|| Error::new(magnus::exception::runtime_error(), "Matcher not loaded"))?;
         Ok(true)
     }
-
-    fn hello(&self) -> String {
-        "Hello from PhraseKit native extension!".to_string()
-    }
 }
 
 #[magnus::init]
@@ -103,7 +99,6 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     class.define_method("match_tokens", method!(MatcherWrapper::match_tokens, 3))?;
     class.define_method("stats", method!(MatcherWrapper::stats, 0))?;
     class.define_method("healthcheck", method!(MatcherWrapper::healthcheck, 0))?;
-    class.define_method("hello", method!(MatcherWrapper::hello, 0))?;
 
     Ok(())
 }
