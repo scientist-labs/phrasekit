@@ -1,6 +1,7 @@
 require "phrasekit/version"
 require "phrasekit/phrasekit"
 require "phrasekit/miner"
+require "phrasekit/scorer"
 
 module PhraseKit
   class Error < StandardError; end

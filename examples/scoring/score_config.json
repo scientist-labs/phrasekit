@@ -1,0 +1,7 @@
+{
+  "method": "ratio",
+  "min_salience": 2.0,
+  "min_domain_count": 2,
+  "assign_phrase_ids": true,
+  "starting_phrase_id": 1000
+}
