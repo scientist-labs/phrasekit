@@ -1,5 +1,12 @@
 require "phrasekit/version"
 
+begin
+  require "phrasekit/phrasekit"
+  NATIVE_EXTENSION_LOADED = true
+rescue LoadError
+  NATIVE_EXTENSION_LOADED = false
+end
+
 module PhraseKit
   class Error < StandardError; end
 
@@ -46,7 +53,11 @@ module PhraseKit
     end
 
     def hello
-      "Hello from PhraseKit! (Ruby stub version #{VERSION})"
+      if NATIVE_EXTENSION_LOADED
+        Matcher.new.hello
+      else
+        "Hello from PhraseKit! (Ruby stub version #{VERSION})"
+      end
     end
   end
 end

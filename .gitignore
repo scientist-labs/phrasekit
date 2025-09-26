@@ -6,8 +6,39 @@
 /pkg/
 /spec/reports/
 /tmp/
-Gemfile.lock
-*.bundle
 
 # rspec failure tracking
 .rspec_status
+
+# Rust/Cargo artifacts
+/target/
+**/target/
+/Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# Ruby extension build artifacts
+/ext/**/Makefile
+/ext/**/mkmf.log
+/lib/**/*.bundle
+/lib/**/*.so
+/lib/**/*.dll
+/lib/**/*.dylib
+*.o
+*.a
+mkmf.log
+Gemfile.lock
+
+# Development artifacts
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Test artifacts
+/spec/fixtures/**/*.daac
+/spec/fixtures/**/*.bin
+/spec/fixtures/**/*.json
+!/spec/fixtures/samples/

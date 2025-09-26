@@ -1,43 +1,131 @@
-# Phrasekit
+# PhraseKit
 
-TODO: Delete this and the text below, and describe your gem
+Ultra-fast deterministic phrase matching for Ruby using Rust and Aho-Corasick automaton.
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/phrasekit`. To experiment with that code, run `bin/console` for an interactive prompt.
+PhraseKit provides high-performance phrase recognition over token sequences, designed for search query understanding, NLP pipelines, and information extraction at scale.
+
+## Features
+
+- **Deterministic matching** using Double-Array Aho-Corasick (daachorse)
+- **Sub-millisecond performance** for queries with millions of phrases
+- **Hot-reloadable** artifacts with zero downtime
+- **Thread-safe** operations via Magnus/Rust
+- **Multiple matching policies**: leftmost-longest, leftmost-first, salience-max
+- **Production-ready** with health checks, stats, and observability
 
 ## Installation
 
-TODO: Replace `UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG` with your gem name right after releasing it to RubyGems.org. Please do not do it earlier due to security reasons. Alternatively, replace this section with instructions to install your gem from git if you don't plan to release to RubyGems.org.
+Add to your Gemfile:
 
-Install the gem and add to the application's Gemfile by executing:
-
-```bash
-bundle add UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+```ruby
+gem 'phrasekit'
 ```
 
-If bundler is not being used to manage dependencies, install the gem by executing:
+Or install directly:
 
 ```bash
-gem install UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+gem install phrasekit
 ```
 
 ## Usage
 
-TODO: Write usage instructions here
+### Basic Setup
+
+```ruby
+require 'phrasekit'
+
+# Load phrase artifacts
+PhraseKit.load!(
+  automaton_path: "/path/to/phrases.daac",
+  payloads_path: "/path/to/payloads.bin",
+  manifest_path: "/path/to/phrases.json"
+)
+
+# Match tokens
+token_ids = [1012, 441, 7788, 902, 1455]  # Your tokenized input
+matches = PhraseKit.match_tokens(
+  token_ids: token_ids,
+  policy: :leftmost_longest,  # or :leftmost_first, :salience_max
+  max: 32                      # Maximum matches to return
+)
+
+# Returns array of matches:
+# [
+#   {start: 1, end: 3, phrase_id: 12345, salience: 2.13, count: 314, n: 2},
+#   {start: 3, end: 5, phrase_id: 67890, salience: 1.82, count: 271, n: 2}
+# ]
+```
+
+### Integration with SpellKit
+
+PhraseKit is designed to work with SpellKit for typo correction:
+
+```ruby
+class SearchTermExtractor
+  def call(text)
+    # 1. Tokenize
+    tokens = MyTokenizer.tokenize(text)
+
+    # 2. Spell correction (via SpellKit gem)
+    corrected = SpellKit.correct_tokens(tokens, guard: :domain)
+
+    # 3. Convert to token IDs
+    token_ids = MyTokenizer.to_ids(corrected)
+
+    # 4. Extract phrases
+    PhraseKit.match_tokens(token_ids: token_ids, policy: :leftmost_longest)
+  end
+end
+```
+
+### Monitoring
+
+```ruby
+# Check health
+PhraseKit.healthcheck  # Raises on issues
+
+# Get statistics
+PhraseKit.stats
+# => {
+#   version: "pk-2025-09-25-01",
+#   loaded_at: Time,
+#   num_patterns: 1_287_345,
+#   heap_mb: 142.3,
+#   hits_total: 892341,
+#   p50_us: 47,
+#   p95_us: 189
+# }
+```
+
+## Architecture
+
+PhraseKit uses:
+- **Rust** for core matching logic
+- **Magnus** for Ruby-Rust bindings
+- **Daachorse** for the Aho-Corasick automaton
+- **Static linking** for reliability
+
+## Performance
+
+Target performance with 1-3M phrases:
+- p50 < 100µs
+- p95 < 500µs
+- Memory < 300MB
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+```bash
+# Setup
+bundle install
+bundle exec rake compile
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+# Run tests
+bundle exec rspec
 
-## Contributing
-
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/phrasekit. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/[USERNAME]/phrasekit/blob/main/CODE_OF_CONDUCT.md).
+# Build gem
+gem build phrasekit.gemspec
+```
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
-
-## Code of Conduct
-
-Everyone interacting in the Phrasekit project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/[USERNAME]/phrasekit/blob/main/CODE_OF_CONDUCT.md).
+MIT License. See LICENSE.txt for details.
