@@ -23,6 +23,10 @@ path = "src/bin/phrasekit_mine.rs"
 name = "phrasekit_score"
 path = "src/bin/phrasekit_score.rs"
 
+[[bin]]
+name = "phrasekit_tag"
+path = "src/bin/phrasekit_tag.rs"
+
 [dependencies]
 magnus = { version = "0.7" }
 daachorse = "1.0"

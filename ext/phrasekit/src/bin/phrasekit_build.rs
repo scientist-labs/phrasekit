@@ -19,6 +19,7 @@ struct PhraseInput {
     tokens: Vec<String>,
     phrase_id: u32,
     salience: f32,
+    #[serde(alias = "domain_count")]
     count: u32,
 }
 

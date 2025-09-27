@@ -47,5 +47,6 @@ Gemfile.lock
 /examples/**/output/
 /examples/**/candidate_phrases*.jsonl
 /examples/**/phrases*.jsonl
+/examples/**/tagged_corpus*.jsonl
 !/examples/**/background_phrases.jsonl
 !/examples/**/domain_phrases.jsonl
