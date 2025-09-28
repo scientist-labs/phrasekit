@@ -10,6 +10,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ext/phrasekit/target
             tmp
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 

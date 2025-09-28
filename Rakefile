@@ -11,4 +11,13 @@ Rake::ExtensionTask.new("phrasekit") do |ext|
   ext.cross_platform = ["x86_64-linux", "x86_64-darwin", "arm64-darwin"]
 end
 
+desc "Build CLI binaries"
+task :build_binaries do
+  Dir.chdir("ext/phrasekit") do
+    sh "cargo build --release --bins"
+  end
+end
+
+task compile: :build_binaries
+
 task default: [:compile, :spec]
