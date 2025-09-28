@@ -1,0 +1,9 @@
+{
+  "version": "demo-v1",
+  "tokenizer": "whitespace",
+  "num_patterns": 7,
+  "min_count": null,
+  "salience_threshold": null,
+  "built_at": "2025-09-27T23:48:05.732694+00:00",
+  "separator_id": 4294967294
+}

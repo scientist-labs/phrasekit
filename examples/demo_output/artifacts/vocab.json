@@ -1,0 +1,17 @@
+{
+  "tokens": {
+    "mix": 5,
+    "oligo": 6,
+    "buffer": 2,
+    "master": 4,
+    "assay": 1,
+    "rat": 8,
+    "protein": 7,
+    "cdk10": 3
+  },
+  "special_tokens": {
+    "<UNK>": 0
+  },
+  "vocab_size": 9,
+  "separator_id": 4294967294
+}
