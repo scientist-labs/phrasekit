@@ -18,6 +18,12 @@ task :build_binaries do
   end
 end
 
-task compile: :build_binaries
+desc "Build test fixtures"
+task :build_fixtures => :build_binaries do
+  fixture_builder = File.expand_path("ext/phrasekit/target/release/fixture_builder")
+  sh "#{fixture_builder} spec/fixtures"
+end
+
+task compile: [:build_binaries, :build_fixtures]
 
 task default: [:compile, :spec]
