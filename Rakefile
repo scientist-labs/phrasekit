@@ -12,7 +12,12 @@ rescue LoadError
   task(:spec) { abort "rspec is a dev dependency" }
 end
 
-Rake::ExtensionTask.new("phrasekit") do |ext|
+# Pass the gemspec so rake-compiler defines the native:<platform> gem tasks that
+# rb-sys-dock invokes for each precompiled leg (without it the cross build fails
+# with "Don't know how to build task native:<platform>").
+GEMSPEC = Gem::Specification.load("phrasekit.gemspec")
+
+Rake::ExtensionTask.new("phrasekit", GEMSPEC) do |ext|
   ext.lib_dir = "lib/phrasekit"
   ext.ext_dir = "ext/phrasekit"
   ext.cross_compile = true
