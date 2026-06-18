@@ -18,7 +18,20 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir["lib/**/*.rb", "ext/**/*.{rs,rb,toml}", "Cargo.*", "LICENSE", "README.md"]
   spec.require_paths = ["lib"]
-  spec.extensions = ["ext/phrasekit/extconf.rb"]
+
+  # Precompiled platform gems (e.g. arm64-darwin, x86_64-linux, aarch64-linux, built on
+  # CI runners) carry one compiled extension per Ruby ABI under lib/phrasekit/<major.minor>/
+  # and must NOT declare extensions, or RubyGems would try to recompile from Rust source on
+  # install — defeating the precompiled gem. When RUST_GEM_PLATFORM is set (by the shared
+  # rust-gem-release packaging step), pin the platform, clear extensions, and ship the
+  # compiled binaries. Unset => normal source gem that compiles the extension on install.
+  if (platform_gem = ENV["RUST_GEM_PLATFORM"])
+    spec.platform   = platform_gem
+    spec.extensions = []
+    spec.files     += Dir["lib/phrasekit/*/phrasekit.bundle"] + Dir["lib/phrasekit/*/phrasekit.so"]
+  else
+    spec.extensions = ["ext/phrasekit/extconf.rb"]
+  end
 
   spec.add_dependency "rb_sys", "~> 0.9"
 

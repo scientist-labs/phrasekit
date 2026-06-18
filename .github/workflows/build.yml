@@ -1,0 +1,20 @@
+name: build
+
+# PR-CI: thin caller of the shared reusable build workflow
+# scientist-labs/rust-gem-release/.github/workflows/build.yml (pinned @v0). On each
+# Ruby ABI it checks out, sets up Ruby + Rust, restores a Cargo cache, runs
+# `bundle exec rake compile`, then the test command below. The heavy multi-platform
+# fat-gem matrix lives in release.yml; this just keeps PRs green on compile + specs.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: scientist-labs/rust-gem-release/.github/workflows/build.yml@v0
+    with:
+      # phrasekit's suite runs via rspec (.rspec + RSpec::Core::RakeTask :spec).
+      test-command: bundle exec rspec
