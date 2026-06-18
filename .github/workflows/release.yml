@@ -2,7 +2,7 @@ name: Release
 
 # ============================================================================
 # phrasekit's release workflow — a thin caller of the shared reusable workflow
-# scientist-labs/rust-gem-release (pinned @v0, the moving major).
+# scientist-labs/rust-gem-release (pinned @0.10.0).
 #
 # It owns ONLY the bits a reusable (on: workflow_call) workflow cannot: the tag
 # trigger, the contents:write token grant, and the per-gem inputs/secrets. Every
@@ -49,7 +49,7 @@ jobs:
     # Normal PRs skip the expensive matrix; only a `dry-run-release` label opts in.
     # Tag pushes and manual dispatch always run.
     if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'dry-run-release') }}
-    uses: scientist-labs/rust-gem-release/.github/workflows/release.yml@v0
+    uses: scientist-labs/rust-gem-release/.github/workflows/release.yml@0.10.0
     with:
       # gem-name == ext-name == gemspec basename == "phrasekit", so ext-name, gemspec,
       # and platform-gem-env (RUST_GEM_PLATFORM, the default) all default-resolve and
