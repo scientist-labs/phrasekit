@@ -1,0 +1,64 @@
+name: Release
+
+# ============================================================================
+# phrasekit's release workflow — a thin caller of the shared reusable workflow
+# scientist-labs/rust-gem-release (pinned @0.10.0).
+#
+# It owns ONLY the bits a reusable (on: workflow_call) workflow cannot: the tag
+# trigger, the contents:write token grant, and the per-gem inputs/secrets. Every
+# build leg (source gem + arm64-darwin + x86_64-linux + aarch64-linux), SHA pin,
+# and packaging gotcha lives once in the shared workflow.
+#
+# Release procedure (the tag drives it; a CI-created tag would not re-trigger):
+#   1. bump lib/phrasekit/version.rb (the prepare job guards tag == version)
+#   2. git commit -am "Release X.Y.Z"
+#   3. git tag X.Y.Z && git push origin HEAD --tags
+#
+# Manual dispatch defaults publish to false (dry-run): builds every gem but does
+# NOT push to RubyGems. A tag push publishes, but only when RUBYGEMS_API_KEY is
+# set (an empty secret makes the push step a safe no-op).
+# ============================================================================
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"        # release:    0.1.0
+      - "[0-9]+.[0-9]+.[0-9]+.*"      # prerelease: 0.1.0.pre1, 0.1.0.rc2 (RubyGems dot form)
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+.*"
+  workflow_dispatch:
+    inputs:
+      publish:
+        type: boolean
+        default: false
+        description: "push to RubyGems (default off = dry-run)"
+  # A PR labeled `dry-run-release` runs the full precompiled release matrix as a
+  # publish=false dry-run, validating the real pipeline pre-merge. A reusable
+  # workflow is branch-only, so workflow_dispatch cannot reach it — the label is
+  # the only pre-merge lever.
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+# A reusable workflow can only REDUCE the inherited token scope, never elevate it —
+# so the caller MUST grant contents: write here (for `gh release create`).
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # Normal PRs skip the expensive matrix; only a `dry-run-release` label opts in.
+    # Tag pushes and manual dispatch always run.
+    if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'dry-run-release') }}
+    uses: scientist-labs/rust-gem-release/.github/workflows/release.yml@0.10.0
+    with:
+      # gem-name == ext-name == gemspec basename == "phrasekit", so ext-name, gemspec,
+      # and platform-gem-env (RUST_GEM_PLATFORM, the default) all default-resolve and
+      # are omitted.
+      gem-name: phrasekit
+      version-command: ruby -r./lib/phrasekit/version -e 'print PhraseKit::VERSION'
+      # Publish only on tag push, or on a manual dispatch that explicitly opts in.
+      # Every PR (dry-run-release matrix) stays publish=false.
+      publish: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish) }}
+    secrets:
+      # required: false in the shared workflow — an empty secret makes the push a no-op.
+      rubygems-api-key: ${{ secrets.RUBYGEMS_API_KEY }}

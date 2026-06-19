@@ -1,5 +1,18 @@
 require "phrasekit/version"
-require "phrasekit/phrasekit"
+
+# Load the compiled Rust extension. Precompiled (platform) gems install it into a
+# Ruby-ABI-versioned subdir (lib/phrasekit/<major.minor>/phrasekit.{so,bundle}) so a
+# single fat gem can carry a binary per Ruby version; source/dev builds place it flat
+# at lib/phrasekit/phrasekit.{so,bundle}. Try the versioned path first, fall back to
+# the flat one. Resolution goes through $LOAD_PATH (`require`, never `require_relative`)
+# because RubyGems installs native extensions outside the gem's lib/ dir.
+begin
+  RUBY_VERSION =~ /(\d+\.\d+)/
+  require "phrasekit/#{Regexp.last_match(1)}/phrasekit"
+rescue LoadError
+  require "phrasekit/phrasekit"
+end
+
 require "phrasekit/miner"
 require "phrasekit/scorer"
 require "phrasekit/tagger"

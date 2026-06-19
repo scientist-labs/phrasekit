@@ -1,0 +1,32 @@
+name: Lint
+
+# Rust lint (rustfmt + clippy), preserved from the legacy ci.yml. The test/compile
+# matrix moved to build.yml (PR-CI) and the real cross-compiled platform-gem matrix
+# moved to release.yml; this keeps the formatting/lint gate that the shared workflows
+# do not cover.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint Rust code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Run rustfmt
+        run: cargo fmt --check
+
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
